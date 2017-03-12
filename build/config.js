@@ -34,13 +34,13 @@ config.set('build_dependencies',[
 config.set('product_dependencies', config.get('vendor_dependencies').concat(config.get('build_dependencies')))
 
 config.set('vendor_ui', [
-	"normalize.css"
+	"bulma/css/bulma.css"
 ]);
 
 config.set('assetsRoot',"dist");
 config.set('assetsPublic','/assets/');
 config.set('assetsRootPath',path.join(config.get('assetsRoot'),config.get('assetsPublic')))
 
-config.set('isBuild',process.env.NODE_ENV === 'production')
+config.set('isBuild',process.env.NODE_ENV !== 'development')
 
 export default config

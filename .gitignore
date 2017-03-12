@@ -6,3 +6,5 @@ npm-debug.log
 
 # generate
 dist
+
+.DS_Store

@@ -2,29 +2,15 @@ import webpack from 'webpack'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import path from 'path'
 import config from './config.js'
+import CopyWebpackPlugin from 'copy-webpack-plugin';
 
-import ExtractTextPlugin from 'extract-text-webpack-plugin'
-// import autoprefixer from 'autoprefixer'
-import utils from './lib/utils'
+import {cssLoader} from './lib/until.js'
 
-let loadCss;
-let loadLess;
-
-if (config.get('isBuild')) {
-    loadCss = ExtractTextPlugin.extract({fallbackLoader: "style-loader", loader: "css-loader"})
-    loadLess = ExtractTextPlugin.extract({fallbackLoader: "style-loader", loader: "css-loader!less-loader"})
-} else {
-    loadCss = 'style-loader!css-loader'
-    loadLess = 'style-loader!css-loader!less-loader'
-}
-
-const baseConfig = {
+let baseConfig = {
     context: path.resolve(__dirname, '../client'),
     entry: {
         app: ['./startup/main.js'],
-        vendor: config.get('isBuild')
-            ? config.get('product_dependencies')
-            : config.get('vendor_dependencies'),
+        vendor: config.get('vendor_dependencies'),
         vendor_ui: config.get('vendor_ui')
     },
     output: {
@@ -49,8 +35,11 @@ const baseConfig = {
         aliasFields: ["browser"],
         extensions: ['.js'],
         alias: {
-           'images': 'assets/images',
-           'stylesheets': 'assets/stylesheets'
+            'images': 'assets/images',
+            'stylesheets': 'assets/stylesheets',
+            'react': 'preact-compat',
+            'react-dom': 'preact-compat',
+            'react-router': 'preact-router'
         }
     },
     module: {
@@ -63,10 +52,13 @@ const baseConfig = {
                         query: {
                             presets: [
                                 [
-                                    'es2015', {modules: false}
+                                    'es2015', {
+                                        modules: false
+                                    }
                                 ],
                                 'react'
-                            ]
+                            ],
+                            plugins: ["syntax-dynamic-import", "styled-jsx/babel", "jsx-control-statements"]
                         }
                     }
                 ],
@@ -83,35 +75,22 @@ const baseConfig = {
                 loader: "url-loader",
                 query: {
                     limit: 8192,
-                    name: utils.assetsPath('images/[name].[ext]')
+                    name: "images/[name].[ext]"
                 }
             }, {
                 test: /\.(woff2?|eot|ttf|otf|svg)(\?.*)?$/,
                 loader: "url-loader",
                 query: {
                     limit: 8192,
-                    name: utils.assetsPath('fonts/[name].[ext]')
+                    name: "fonts/[name].[ext]"
                 }
-            },
-            {
-                test: /\.css$/,
-                loader: loadCss
-            }, {
-                test: /\.less$/,
-                loader: loadLess
             }
         ]
     },
     plugins: [
-        new webpack.ProvidePlugin({
-            "React": "preact-compat",
-            "ReactDom": "preact-compat"
-        }),
+        new webpack.ProvidePlugin({"React": "preact-compat", "ReactDom": "preact-compat"}),
         new webpack.optimize.CommonsChunkPlugin({
-            name: ['vendor'],
-            filename: config.get('isBuild')
-                ? 'lib/vendor.[hash].js'
-                : 'vendor.js'
+            names: ['vendor', 'vendor_ui']
         }),
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, 'lib/index.ejs'),
@@ -119,14 +98,25 @@ const baseConfig = {
             filename: config.get('isBuild')
                 ? '../index.html'
                 : 'index.html',
-            favicon: path.resolve(__dirname, 'lib/favicon.ico'),
-            inject: true
-        })
-    ]
+            minify: {
+                collapseWhitespace: true
+            }
+        }),
+        new CopyWebpackPlugin([
+            {
+                from: './assets/manifest.json',
+                to: './'
+            }, {
+                from: './assets/favicon.ico',
+                to: './'
+            }
+        ])
+    ],
+    stats: {
+        colors: true
+    }
 }
 
-if (config.get('isBuild')) {
-    baseConfig.plugins.push(new ExtractTextPlugin('css/[name].[contenthash].css'))
-}
+baseConfig = cssLoader(baseConfig)
 
 export default baseConfig
